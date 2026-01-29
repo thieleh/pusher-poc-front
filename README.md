@@ -1,70 +1,259 @@
-# Getting Started with Create React App
+# File Upload POC with Real-time WebSocket Status Tracking
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A proof of concept demonstrating file uploads with real-time progress tracking using **Pusher WebSocket**, **C# ASP.NET Core** backend, and **React** frontend.
 
-## Available Scripts
+![POC Demo](https://img.shields.io/badge/Status-Working-brightgreen) ![WebSocket](https://img.shields.io/badge/WebSocket-Pusher-blue) ![Backend](https://img.shields.io/badge/Backend-C%23%20ASP.NET%20Core-purple) ![Frontend](https://img.shields.io/badge/Frontend-React-cyan)
 
-In the project directory, you can run:
+## Features
 
-### `npm start`
+- **HTTP File Upload** - Secure multipart file uploads via REST API
+- **Real-time Progress Tracking** - WebSocket updates via Pusher Channels
+- **Multiple File Support** - Upload multiple files simultaneously
+- **Test File Generation** - Generate files of different sizes for testing
+- **Status Indicators** - Visual progress with "in_progress", "completed", "failed" states
+- **Error Handling** - Graceful error handling and user feedback
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Architecture
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```
+┌─────────────────┐    HTTP POST     ┌──────────────────────┐
+│   React Client  │ ──────────────► │   C# ASP.NET Core    │
+│                 │                  │      Backend         │
+│  • File Upload  │                  │                      │
+│  • Status UI    │                  │ • Process Upload     │
+│                 │                  │ • Trigger Pusher     │
+└─────────────────┘                  └──────────────────────┘
+         ▲                                        │
+         │                                        ▼
+         │            ┌──────────────────────┐               
+         │            │   Pusher Channels    │               
+         └────────────│                      │               
+      WebSocket       │ • Real-time Events   │               
+      Updates         │ • Status Updates     │               
+                      └──────────────────────┘               
+```
 
-### `npm test`
+## Quick Start
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Prerequisites
 
-### `npm run build`
+- **.NET 8.0+** SDK
+- **Node.js 16+** and npm
+- **Pusher Account** (free tier available)
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 1. Setup Pusher
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+1. Sign up at [pusher.com](https://pusher.com)
+2. Create a new **Channels** app
+3. Note your credentials:
+   - App ID
+   - Key  
+   - Secret
+   - Cluster
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 2. Backend Setup
 
-### `npm run eject`
+```bash
+# Clone and navigate to backend
+mkdir FileUploadPOC && cd FileUploadPOC
+dotnet new webapi
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+# Install Pusher package
+dotnet add package PusherServer
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+# Run the backend
+dotnet run --urls "http://localhost:5000"
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+**Configure `appsettings.json`:**
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "Pusher": {
+    "AppId": "YOUR_APP_ID",
+    "Key": "YOUR_KEY", 
+    "Secret": "YOUR_SECRET",
+    "Cluster": "YOUR_CLUSTER"
+  }
+}
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### 3. Frontend Setup
 
-## Learn More
+```bash
+# Create React app
+npx create-react-app file-upload-frontend
+cd file-upload-frontend
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+# Install dependencies
+npm install pusher-js lucide-react
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+# Run the frontend
+npm start
+```
 
-### Code Splitting
+## Project Structure
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+```
+FileUploadPOC/
+├── Backend/                     # C# ASP.NET Core API
+│   ├── Controllers/
+│   │   └── UploadController.cs  # File upload endpoints
+│   ├── Services/
+│   │   └── PusherService.cs     # Pusher WebSocket service
+│   ├── Program.cs               # App configuration
+│   ├── appsettings.json         # Configuration & credentials
+│   └── uploads/                 # Uploaded files storage
+│
+├── Frontend/                    # React Application
+│   ├── src/
+│   │   ├── App.js              # Main upload component
+│   │   └── index.css           # Styling
+│   └── public/
+│
+└── README.md                   # This file
+```
 
-### Analyzing the Bundle Size
+## API Endpoints
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+| Method | Endpoint | Description | Response |
+|--------|----------|-------------|----------|
+| `GET` | `/api/upload/health` | Health check | `200 OK` |
+| `GET` | `/api/upload/status/{fileId}` | Get upload status | Status info |
+| `POST` | `/api/upload` | Upload file | Upload result |
+| `POST` | `/api/upload/test-pusher` | Test Pusher connection | Test result |
 
-### Making a Progressive Web App
+### Example API Calls
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+```bash
+# Health check
+curl http://localhost:5000/api/upload/health
 
-### Advanced Configuration
+# Test Pusher
+curl -X POST http://localhost:5000/api/upload/test-pusher
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+# Upload file
+curl -X POST -F "file=@test.txt" -F "fileId=test-123" \
+  http://localhost:5000/api/upload
+```
 
-### Deployment
+## Testing the POC
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+### 1. Test Backend Health
+```bash
+curl http://localhost:5000/api/upload/health
+# Expected: {"status":"healthy",...}
+```
 
-### `npm run build` fails to minify
+### 2. Test Pusher Integration
+```bash
+curl -X POST http://localhost:5000/api/upload/test-pusher
+```
+Check the **Pusher Debug Console** - you should see the test event!
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+### 3. Test File Upload
+1. Open React frontend (`http://localhost:3000`)
+2. Click **"Generate Test File"**
+3. Click **"Upload All"**
+4. Watch real-time progress updates! 
+
+### 4. Monitor Events
+
+**Frontend Console (F12):**
+```
+✅ Connected to Pusher
+📤 Uploading file: test-file-small-123.bin
+📡 Received status update: {status: "in_progress", progress: 20}
+📡 Received status update: {status: "completed", progress: 100}
+```
+
+**Backend Console:**
+```
+📤 Starting upload: test-file-small-123.bin (102400 bytes)
+🚀 Triggering Pusher event: in_progress (20%)
+✅ Pusher event sent successfully
+✅ Upload completed: test-file-small-123.bin
+```
+
+**Pusher Dashboard:**
+- Channel: `file-uploads`  
+- Event: `upload-status`
+- Real-time event data
+
+## 🎨 UI Features
+
+### File Size Options
+- **Small (100KB)** - Quick testing
+- **Medium (5MB)** - Standard files  
+- **Large (20MB)** - Stress testing
+
+### Status Indicators
+- 🕒 **Pending** - File queued for upload
+- 🔵 **In Progress (X%)** - Uploading with progress
+- ✅ **Completed** - Upload successful
+- ❌ **Failed** - Upload failed
+
+## WebSocket Events
+
+### Event Structure
+```json
+{
+  "fileId": "test-file-small-123.bin-1234567890",
+  "status": "in_progress",
+  "progress": 65,
+  "timestamp": "2026-01-23T18:30:00.000Z"
+}
+```
+
+### Status Values
+- `in_progress` - File is being uploaded (with progress %)
+- `completed` - Upload finished successfully  
+- `failed` - Upload encountered an error
+
+## Troubleshooting
+
+### Common Issues
+
+**Pusher Not Connecting**
+- ✅ Check credentials in both frontend and backend
+- ✅ Verify cluster setting (`us2`, `eu`, etc.)
+- ✅ Check browser console for errors
+
+**Upload Failing**
+- ✅ Ensure backend is running on `localhost:5000`
+- ✅ Check CORS configuration
+- ✅ Verify `uploads` folder permissions
+
+**Progress Stuck at 0%**
+- ✅ Check file ID matching in frontend
+- ✅ Verify Pusher events are being sent
+- ✅ Check frontend WebSocket connection
+
+**No Events in Pusher Dashboard**
+- ✅ Test with `/api/upload/test-pusher` endpoint
+- ✅ Check backend logs for Pusher errors
+- ✅ Verify all 4 Pusher credentials are correct
+
+### Debug Commands
+
+```bash
+# Test backend health
+curl http://localhost:5000/api/upload/health
+
+# Test Pusher manually
+curl -X POST http://localhost:5000/api/upload/test-pusher
+
+# Check backend logs
+dotnet run --verbosity detailed
+
+# Check frontend console
+# Open browser DevTools (F12) → Console
+```
+
+ ❤️ for learning WebSocket file upload patterns**
